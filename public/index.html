@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+  <div id="app">
+    <v-app>
+      <v-main>
+        <v-container>
+            <p class="text-h2">Employees Dashboard</p>
+            <v-data-table
+                :headers="headers"
+                :items="people"
+                :items-per-page="3"
+                :loading="loading"
+                :options.sync="options"
+                :server-items-length="total"
+                class="elevation-1"
+            >
+                <template v-slot:item.extra="{item}">
+                    <pre>{{item.extra}}</p>
+                </template>
+            </v-data-table>
+        </v-container>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      async created() {
+        const { items: people, total } = await this.getPeopleeData();
+        this.people = people;
+        this.total = total;
+      },
+      watch: {
+        options: {
+          async handler () {
+            const { items: people, total } = await this.getPeopleeData();
+            this.people = people;
+            this.total = total;
+            console.log(this.people, this.total)
+          },
+          deep: true,
+        },
+      },
+      methods: {
+        async apiCall(page = 1, itemsPerPage = 3) {
+          try {
+            this.loading = true;
+            // better to use axios here
+            const data = await fetch(`/people?limit=${itemsPerPage}&offset=${itemsPerPage * (page - 1)}`);
+            const jsonedPeople = await data.json();
+            this.loading = false;
+            return jsonedPeople;
+          } catch (e) {
+            alert(`API Error: ${e}`);
+          }
+        },
+        async getPeopleCount() {
+          this.loading = true;
+          const total = (await (await fetch(`/people/count`)).json())?.total;
+          this.loading = false;
+          return total;
+        },
+        async getPeopleeData() {
+          const { sortBy, sortDesc, page, itemsPerPage } = this.options
+
+          let items = await this.apiCall(page, itemsPerPage)
+          const total = await this.getPeopleCount();
+
+          if (sortBy?.length === 1 && sortDesc?.length === 1) {
+            items = items.sort((a, b) => {
+              const sortA = a[sortBy[0]]
+              const sortB = b[sortBy[0]]
+
+              if (sortDesc[0]) {
+                if (sortA < sortB) return 1
+                if (sortA > sortB) return -1
+                return 0
+              } else {
+                if (sortA < sortB) return -1
+                if (sortA > sortB) return 1
+                return 0
+              }
+            })
+          }
+
+          return {
+            items,
+            total,
+          }
+        },
+        prettyPeople(people) {
+            return people.map(person => ({ ...person, extra: this.prettyJson(person.extra) }));
+        },
+        prettyJson(value) {
+            return JSON.stringify(JSON.parse(JSON.stringify(value)), null, 2);
+        }
+      },
+      data() {
+        return {
+          options: {},
+          total: 0,
+          loading: false,
+          headers: [
+            {
+              text: 'id',
+              align: 'start',
+              value: 'id',
+            },
+            { text: 'Name', value: 'name' },
+            { text: 'Phone', value: 'phone_number' },
+            { text: 'Information', value: 'extra' },
+          ],
+          people: [],
+        }
+      },
+    })
+  </script>
+</body>
+</html>
