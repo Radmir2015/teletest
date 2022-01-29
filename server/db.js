@@ -13,11 +13,24 @@ const getAllPeople = async () => {
   }
 };
 
-const getPeoplePaginated = async (limit = 3, offset = 0) => {
+const getPeoplePaginated = async (limit = 3, offset = 0, sortBy, sortDesc) => {
   try {
+    const format = await db.call("getFormat");
+    let [index, order] = [0, 'all'];
+
+    if (sortBy) {
+      index = format[0].map(f => f.name).findIndex(f => f === sortBy);
+      console.log(format, index)
+
+      if (sortDesc) {
+        // order = sortDesc === 'true' ? 'le' : 'ge';
+      }
+    }
+
+
     return processData(
-      await db.select(512, 0, limit, offset, "all", []),
-      await db.call("getFormat")
+      await db.select(512, index, limit, offset, order, []),
+      format
     );
   } catch (e) {
     console.error(e);

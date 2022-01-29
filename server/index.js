@@ -13,14 +13,15 @@ app.get("/", async (req, res) => {
 });
 
 app.get("/people", async (req, res) => {
+  console.log(req.query)
   return fakeDelay(async () => {
-    res.json(await db.getPeoplePaginated(req.query.limit, req.query.offset));
-  }, 1500)
+    res.json(await db.getPeoplePaginated(req.query.limit, req.query.offset, req.query.sortBy, req.query.sortDesc));
+  }, 3000)
 
   // for whole list
   return fakeDelay(async () => {
     res.json(await db.getAllPeople());
-  }, 1500)
+  }, 3000)
 });
 
 app.get("/people/count", async (req, res) => {
